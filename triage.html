@@ -256,7 +256,17 @@ async function loadPoints() {
   return results.filter(p => isMissingRelation(p,'Areas') || isMissingSelect(p,'Status'));
 }
 async function loadSessions() {
-  return await notionQuery(DB.sessions, { or: [{ property:'Status', select:{ is_empty:true } }, { property:'Areas', relation:{ is_empty:true } }, { property:'Session Type', multi_select:{ is_empty:true } }, { property:'Session Sub-Type', multi_select:{ is_empty:true } }] });
+  const results = await notionQuery(DB.sessions, {
+    and: [
+      { property: 'Status', select: { does_not_equal: 'Completed' } },
+    ]
+  });
+  return results.filter(p =>
+    isMissingSelect(p, 'Status') ||
+    isMissingRelation(p, 'Areas') ||
+    isMissingMultiSelect(p, 'Session Type') ||
+    isMissingMultiSelect(p, 'Session Sub-Type')
+  );
 }
 async function loadProjects() {
   return await notionQuery(DB.projects, { property:'Areas', relation:{ is_empty:true } });
