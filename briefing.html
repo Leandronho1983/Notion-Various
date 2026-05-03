@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Briefing">
+<title>Morning Briefing</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080808;--surface:#111;--surface2:#181818;--border:#222;--border2:#2a2a2a;
+  --text:#edeae4;--muted:#555;--muted2:#777;
+  --red:#e05555;--red-dim:rgba(224,85,85,0.1);
+  --amber:#e0a040;--amber-dim:rgba(224,160,64,0.1);
+  --green:#50c878;--green-dim:rgba(80,200,120,0.1);
+  --blue:#5090e0;--blue-dim:rgba(80,144,224,0.1);
+  --purple:#9070e0;--purple-dim:rgba(144,112,224,0.1);
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;min-height:100dvh;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.app{max-width:480px;margin:0 auto;padding:0 0 40px}
+.header{padding:28px 24px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.header-left{flex:1}
+.date-line{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:4px}
+.greeting{font-size:24px;font-weight:400;letter-spacing:-0.03em;color:var(--text);line-height:1.2}
+.header-actions{display:flex;gap:8px;align-items:center;margin-top:4px}
+.icon-btn{background:var(--surface);border:1px solid var(--border2);color:var(--muted2);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.15s;flex-shrink:0}
+.icon-btn:hover{color:var(--text);border-color:var(--muted)}
+.icon-btn.set{color:var(--green);border-color:var(--green)}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px;margin-bottom:8px}
+.metric-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:4px;transition:border-color 0.15s}
+.metric-card.red{border-color:rgba(224,85,85,0.3);background:var(--red-dim)}
+.metric-card.amber{border-color:rgba(224,160,64,0.3);background:var(--amber-dim)}
+.metric-card.green{border-color:rgba(80,200,120,0.3);background:var(--green-dim)}
+.metric-card.blue{border-color:rgba(80,144,224,0.3);background:var(--blue-dim)}
+.metric-number{font-family:'DM Mono',monospace;font-size:36px;font-weight:500;line-height:1;letter-spacing:-0.02em}
+.metric-card.red .metric-number{color:var(--red)}
+.metric-card.amber .metric-number{color:var(--amber)}
+.metric-card.green .metric-number{color:var(--green)}
+.metric-card.blue .metric-number{color:var(--blue)}
+.metric-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted2)}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.section{padding:20px 16px 0}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 4px}
+.section-title{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted2)}
+.section-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.card-list{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:border-color 0.15s;text-decoration:none;color:inherit}
+.card:hover{border-color:var(--muted)}
+.card-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.card-dot.red{background:var(--red)}
+.card-dot.amber{background:var(--amber)}
+.card-dot.green{background:var(--green)}
+.card-dot.blue{background:var(--blue)}
+.card-dot.gray{background:var(--muted)}
+.card-body{flex:1;min-width:0}
+.card-title{font-size:14px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.card-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+.card-right{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.06em;text-transform:uppercase;padding:2px 7px;border-radius:100px;white-space:nowrap}
+.badge.red{background:var(--red-dim);color:var(--red)}
+.badge.amber{background:var(--amber-dim);color:var(--amber)}
+.badge.green{background:var(--green-dim);color:var(--green)}
+.badge.blue{background:var(--blue-dim);color:var(--blue)}
+.badge.gray{background:var(--surface2);color:var(--muted2)}
+.dates-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.date-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:6px}
+.date-committee{font-size:11px;font-weight:500;color:var(--muted2);text-transform:uppercase;letter-spacing:0.05em;font-family:'DM Mono',monospace}
+.date-value{font-size:15px;font-weight:400;color:var(--text);letter-spacing:-0.01em}
+.date-value.soon{color:var(--amber)}
+.date-value.empty{color:var(--muted);font-style:italic;font-size:13px}
+.date-days{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.loading-state{padding:40px 24px;display:flex;flex-direction:column;align-items:center;gap:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--muted2);border-radius:50%;animation:spin 0.8s linear infinite}
+.loading-text{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase}
+.empty-state{text-align:center;padding:30px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.05em}
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom)+20px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 18px;font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:all 0.25s;pointer-events:none;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{color:var(--green);border-color:var(--green)}
+.toast.error{color:var(--red);border-color:var(--red)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;z-index:300;backdrop-filter:blur(8px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius) var(--radius) 0 0;padding:24px 24px calc(24px + env(safe-area-inset-bottom));width:100%;display:flex;flex-direction:column;gap:14px;max-width:500px;margin:0 auto}
+.modal-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2)}
+.modal-desc{font-size:13px;color:var(--muted2);line-height:1.6}
+.modal-input{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:12px 14px;width:100%;outline:none}
+.modal-actions{display:flex;gap:10px}
+.modal-cancel{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:12px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
+.modal-save{flex:2;background:var(--text);border:none;color:var(--bg);padding:12px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer}
+.divider{height:1px;background:var(--border);margin:8px 16px 0}
+.refresh-line{padding:8px 20px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:right;letter-spacing:0.05em}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="date-line" id="dateLine">—</div>
+      <div class="greeting" id="greeting">Good morning</div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="tokenBtn" onclick="openTokenModal()" title="Set token">⚙</button>
+      <button class="icon-btn" id="refreshBtn" onclick="loadAll()" title="Refresh">↻</button>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric-card red"><div class="metric-number" id="m-overdue">—</div><div class="metric-label">Overdue actions</div><div class="metric-sub" id="m-overdue-sub"></div></div>
+    <div class="metric-card blue"><div class="metric-number" id="m-sessions">—</div><div class="metric-label">Sessions today</div><div class="metric-sub" id="m-sessions-sub"></div></div>
+    <div class="metric-card amber"><div class="metric-number" id="m-points">—</div><div class="metric-label">Open points</div><div class="metric-sub" id="m-points-sub"></div></div>
+    <div class="metric-card green"><div class="metric-number" id="m-projects">—</div><div class="metric-label">Active projects</div><div class="metric-sub" id="m-projects-sub"></div></div>
+  </div>
+
+  <div class="section" id="sessionsSection">
+    <div class="section-header"><span class="section-title">Today's sessions</span><span class="section-count" id="sessionsCount"></span></div>
+    <div class="card-list" id="sessionsList"><div class="loading-state"><div class="loading-spinner"></div><div class="loading-text">Loading</div></div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="section" id="actionsSection">
+    <div class="section-header"><span class="section-title">Overdue actions</span><span class="section-count" id="actionsCount"></span></div>
+    <div class="card-list" id="actionsList"><div class="loading-state"><div class="loading-spinner"></div><div class="loading-text">Loading</div></div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="section" id="pointsSection">
+    <div class="section-header"><span class="section-title">Outstanding points</span><span class="section-count" id="pointsCount"></span></div>
+    <div class="card-list" id="pointsList"><div class="loading-state"><div class="loading-spinner"></div><div class="loading-text">Loading</div></div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="section">
+    <div class="section-header"><span class="section-title">Key committee dates</span></div>
+    <div class="dates-grid" id="datesList"><div class="loading-state" style="grid-column:1/-1"><div class="loading-spinner"></div></div></div>
+  </div>
+  <div class="refresh-line" id="refreshLine"></div>
+</div>
+
+<div class="modal-overlay" id="tokenModal">
+  <div class="modal">
+    <div class="modal-title">Notion token</div>
+    <p class="modal-desc">Paste your integration token. Stored locally on your device.</p>
+    <input type="password" class="modal-input" id="tokenInput" placeholder="secret_…" autocomplete="off" spellcheck="false">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeTokenModal()">Cancel</button>
+      <button class="modal-save" onclick="saveToken()">Save</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const WORKER = 'https://notion-proxy.leandromrazevedo.workers.dev/';
+const DB = {
+  actions:  '3272c6911bc480588719cc8372fe73fa',
+  sessions: '3272c6911bc48006ac82fcc608844b42',
+  points:   '32f2c6911bc480edbd64e056bb559c94',
+  projects: '3272c6911bc4802792dae39661419005',
+};
+const KEY_COMMITTEES = [
+  { name: 'Joint CTF & SCF TFC', id: '33c2c6911bc48070abc1e2343e9cbee6' },
+  { name: 'TIC',                  id: '32d2c6911bc480cdbe5edfd3a0be21e1' },
+  { name: 'MDB Committee',        id: '33c2c6911bc480569523d5f6c858e712' },
+  { name: 'Annual Consultations', id: '33c2c6911bc4801da993e2dc54212764' },
+];
+
+function getToken() { return localStorage.getItem('notion_token') || ''; }
+function openTokenModal() { document.getElementById('tokenInput').value = getToken(); document.getElementById('tokenModal').classList.add('open'); }
+function closeTokenModal() { document.getElementById('tokenModal').classList.remove('open'); }
+function saveToken() {
+  const t = document.getElementById('tokenInput').value.trim();
+  if (t) { localStorage.setItem('notion_token', t); document.getElementById('tokenBtn').classList.add('set'); showToast('Token saved', 'success'); }
+  closeTokenModal(); loadAll();
+}
+if (getToken()) document.getElementById('tokenBtn').classList.add('set');
+
+function initHeader() {
+  const now = new Date();
+  const h = now.getHours();
+  const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting').textContent = greeting + ', Leandro.';
+  document.getElementById('dateLine').textContent = now.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+async function query(dbId, filter, sorts) {
+  const token = getToken();
+  const body = {};
+  if (filter) body.filter = filter;
+  if (sorts) body.sorts = sorts;
+  body.page_size = 50;
+  const res = await fetch(WORKER, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token,
+      'Notion-Version': '2022-06-28',
+      'X-Notion-Endpoint': 'databases/' + dbId + '/query',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error('API error ' + res.status);
+  const data = await res.json();
+  return data.results || [];
+}
+
+function prop(page, name) {
+  const p = page.properties[name];
+  if (!p) return null;
+  if (p.type === 'title') return p.title?.map(t => t.plain_text).join('') || '';
+  if (p.type === 'select') return p.select?.name || null;
+  if (p.type === 'date') return p.date?.start || null;
+  if (p.type === 'relation') return p.relation || [];
+  if (p.type === 'multi_select') return p.multi_select?.map(s => s.name) || [];
+  return null;
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr); const t = new Date();
+  t.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  return Math.round((d - t) / 86400000);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return null;
+  return new Date(dateStr).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function priorityColor(p) {
+  if (p === 'High') return 'red';
+  if (p === 'Medium') return 'amber';
+  if (p === 'Low') return 'green';
+  return 'gray';
+}
+
+function renderEmpty(container, msg) { container.innerHTML = `<div class="empty-state">${msg}</div>`; }
+
+async function loadSessions() {
+  const container = document.getElementById('sessionsList');
+  const t = today();
+  try {
+    const results = await query(DB.sessions, {
+      and: [
+        { property: 'Start Date', date: { equals: t } },
+        { property: 'Status', select: { equals: 'Planned' } },
+      ]
+    }, [{ property: 'Start Date', direction: 'ascending' }]);
+    document.getElementById('m-sessions').textContent = results.length;
+    document.getElementById('sessionsCount').textContent = results.length + ' total';
+    if (!results.length) { renderEmpty(container, 'No sessions today'); return; }
+    container.innerHTML = results.map(p => {
+      const title = prop(p, 'Session Note Title') || 'Untitled';
+      const type = (prop(p, 'Session Type') || []).join(', ');
+      return `<a class="card" href="${p.url}" target="_blank"><div class="card-dot blue"></div><div class="card-body"><div class="card-title">${title}</div><div class="card-meta"><span>${type || '—'}</span></div></div></a>`;
+    }).join('');
+  } catch(e) { renderEmpty(container, 'Could not load sessions'); }
+}
+
+async function loadActions() {
+  const container = document.getElementById('actionsList');
+  const t = today();
+  try {
+    const results = await query(DB.actions, {
+      and: [
+        { property: 'Status', select: { does_not_equal: 'Done' } },
+        { property: 'Status', select: { does_not_equal: 'Cancelled' } },
+        { property: 'Due Date', date: { before: t } },
+      ]
+    }, [{ property: 'Priority', direction: 'ascending' }, { property: 'Due Date', direction: 'ascending' }]);
+    const high = results.filter(p => prop(p, 'Priority') === 'High').length;
+    document.getElementById('m-overdue').textContent = results.length;
+    document.getElementById('m-overdue-sub').textContent = high > 0 ? high + ' high priority' : '';
+    document.getElementById('actionsCount').textContent = results.length + ' total';
+    if (!results.length) { renderEmpty(container, 'No overdue actions'); return; }
+    container.innerHTML = results.slice(0, 8).map(p => {
+      const title = prop(p, 'Action Title') || 'Untitled';
+      const priority = prop(p, 'Priority');
+      const due = prop(p, 'Due Date');
+      const days = daysUntil(due);
+      const daysStr = days !== null ? Math.abs(days) + 'd overdue' : '';
+      const color = priorityColor(priority);
+      return `<a class="card" href="${p.url}" target="_blank"><div class="card-dot ${color}"></div><div class="card-body"><div class="card-title">${title}</div><div class="card-meta">${daysStr ? '<span>' + daysStr + '</span>' : ''}</div></div><div class="card-right">${priority ? '<span class="badge ' + color + '">' + priority + '</span>' : ''}</div></a>`;
+    }).join('');
+    if (results.length > 8) container.innerHTML += `<div class="empty-state">+${results.length - 8} more in Notion</div>`;
+  } catch(e) { renderEmpty(container, 'Could not load actions'); }
+}
+
+async function loadPoints() {
+  const container = document.getElementById('pointsList');
+  try {
+    const results = await query(DB.points, {
+      and: [
+        { property: 'Status', select: { does_not_equal: 'Closed' } },
+        { property: 'Status', select: { does_not_equal: 'Dropped' } },
+      ]
+    }, [{ property: 'Priority', direction: 'ascending' }]);
+    const elevated = results.filter(p => prop(p, 'Status') === 'Elevated').length;
+    document.getElementById('m-points').textContent = results.length;
+    document.getElementById('m-points-sub').textContent = elevated > 0 ? elevated + ' elevated' : '';
+    document.getElementById('pointsCount').textContent = results.length + ' total';
+    if (!results.length) { renderEmpty(container, 'No open outstanding points'); return; }
+    container.innerHTML = results.slice(0, 6).map(p => {
+      const title = prop(p, 'Title Outstanding Point') || 'Untitled';
+      const status = prop(p, 'Status');
+      const priority = prop(p, 'Priority');
+      const color = status === 'Elevated' ? 'red' : priorityColor(priority);
+      return `<a class="card" href="${p.url}" target="_blank"><div class="card-dot ${color}"></div><div class="card-body"><div class="card-title">${title}</div><div class="card-meta"><span>${status || ''}</span></div></div><div class="card-right">${priority ? '<span class="badge ' + priorityColor(priority) + '">' + priority + '</span>' : ''}</div></a>`;
+    }).join('');
+    if (results.length > 6) container.innerHTML += `<div class="empty-state">+${results.length - 6} more in Notion</div>`;
+  } catch(e) { renderEmpty(container, 'Could not load outstanding points'); }
+}
+
+async function loadProjects() {
+  try {
+    const results = await query(DB.projects, { property: 'Status', select: { equals: 'Active' } });
+    document.getElementById('m-projects').textContent = results.length;
+  } catch(e) { document.getElementById('m-projects').textContent = '—'; }
+}
+
+async function loadKeyDates() {
+  const container = document.getElementById('datesList');
+  const t = today();
+  try {
+    const cards = await Promise.all(KEY_COMMITTEES.map(async (committee) => {
+      try {
+        const results = await query(DB.sessions, {
+          and: [
+            { property: 'Committees', relation: { contains: committee.id } },
+            { property: 'Status', select: { equals: 'Planned' } },
+            { property: 'Start Date', date: { on_or_after: t } },
+          ]
+        }, [{ property: 'Start Date', direction: 'ascending' }]);
+        const next = results[0];
+        const dateStr = next ? prop(next, 'Start Date') : null;
+        const days = daysUntil(dateStr);
+        const soon = days !== null && days <= 14;
+        return `<div class="date-card"><div class="date-committee">${committee.name}</div>${dateStr ? `<div class="date-value${soon?' soon':''}">${formatDate(dateStr)}</div><div class="date-days">${days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : 'In ' + days + ' days'}</div>` : `<div class="date-value empty">Not scheduled</div>`}</div>`;
+      } catch(e) {
+        return `<div class="date-card"><div class="date-committee">${committee.name}</div><div class="date-value empty">—</div></div>`;
+      }
+    }));
+    container.innerHTML = cards.join('');
+  } catch(e) { container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">Could not load dates</div>`; }
+}
+
+async function loadAll() {
+  if (!getToken()) { openTokenModal(); return; }
+  document.getElementById('refreshBtn').style.opacity = '0.4';
+  ['m-overdue','m-sessions','m-points','m-projects'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('sessionsList').innerHTML = `<div class="loading-state"><div class="loading-spinner"></div></div>`;
+  document.getElementById('actionsList').innerHTML = `<div class="loading-state"><div class="loading-spinner"></div></div>`;
+  document.getElementById('pointsList').innerHTML = `<div class="loading-state"><div class="loading-spinner"></div></div>`;
+  document.getElementById('datesList').innerHTML = `<div class="loading-state" style="grid-column:1/-1"><div class="loading-spinner"></div></div>`;
+  await Promise.all([loadSessions(), loadActions(), loadPoints(), loadProjects(), loadKeyDates()]);
+  document.getElementById('refreshBtn').style.opacity = '1';
+  document.getElementById('refreshLine').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+initHeader();
+loadAll();
+</script>
+</body>
+</html>

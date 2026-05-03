@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Triage">
+<title>Notion Triage</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c0c0c;--surface:#161616;--surface2:#1f1f1f;--border:#282828;--border2:#333;
+  --text:#f5f0e8;--muted:#555;--muted2:#888;
+  --green:#c8f060;--green-dim:rgba(200,240,96,0.1);
+  --blue:#60b4f0;--blue-dim:rgba(96,180,240,0.1);
+  --purple:#b060f0;--purple-dim:rgba(176,96,240,0.1);
+  --orange:#f0a060;--orange-dim:rgba(240,160,96,0.1);
+  --danger:#e05555;--danger-dim:rgba(224,85,85,0.1);
+  --success:#50c878;--amber:#e0a040;--amber-dim:rgba(224,160,64,0.1);
+  --r:10px;--r-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100dvh;overflow-x:hidden}
+.nav{position:sticky;top:0;z-index:50;background:rgba(12,12,12,0.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;height:56px;gap:10px}
+.nav-title{font-size:15px;font-weight:700;letter-spacing:-0.02em;flex:1}
+.nav-btn{width:32px;height:32px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--muted2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0}
+.nav-btn:hover{color:var(--text)}
+.nav-btn.ok{color:var(--success);border-color:var(--success)}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border);background:var(--bg)}
+.tab{padding:10px 4px;border:none;background:none;color:var(--muted2);font-family:'Syne Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:2px solid transparent}
+.tab.active{color:var(--text);border-bottom-color:var(--text)}
+.tab.active.t-action{color:var(--green);border-bottom-color:var(--green)}
+.tab.active.t-op{color:var(--blue);border-bottom-color:var(--blue)}
+.tab.active.t-session{color:var(--purple);border-bottom-color:var(--purple)}
+.tab.active.t-project{color:var(--orange);border-bottom-color:var(--orange)}
+.tab-count{font-size:9px;background:var(--surface);border:1px solid var(--border2);border-radius:100px;padding:1px 6px;min-width:18px;text-align:center}
+.main{padding:14px 16px;max-width:500px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;transition:opacity 0.3s,transform 0.3s}
+.card.removing{opacity:0;transform:translateX(30px);max-height:0;padding:0;margin:-5px 0;overflow:hidden}
+.card-top{display:flex;align-items:flex-start;gap:8px}
+.ctype{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:2px 7px;border-radius:3px;flex-shrink:0;margin-top:3px}
+.ctype.action{background:var(--green-dim);color:var(--green)}
+.ctype.op{background:var(--blue-dim);color:var(--blue)}
+.ctype.session{background:var(--purple-dim);color:var(--purple)}
+.ctype.project{background:var(--orange-dim);color:var(--orange)}
+.ctitle{font-size:14px;font-weight:500;line-height:1.4;flex:1}
+.notion-link{font-size:14px;color:var(--muted);text-decoration:none;flex-shrink:0;margin-top:2px}
+.cmeta{font-family:'Syne Mono',monospace;font-size:10px;color:var(--muted2);display:flex;gap:8px;flex-wrap:wrap}
+.missing-tag{font-family:'Syne Mono',monospace;font-size:9px;padding:1px 6px;border-radius:3px;background:var(--danger-dim);color:var(--danger)}
+.fields{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:10px}
+.field-row{display:flex;align-items:center;gap:8px;min-height:28px}
+.field-lbl{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);width:68px;flex-shrink:0}
+.pills{display:flex;gap:5px;flex-wrap:wrap;flex:1}
+.pill{font-family:'Syne Mono',monospace;font-size:10px;padding:4px 10px;border-radius:100px;border:1px solid var(--border2);background:var(--bg);color:var(--muted2);cursor:pointer;white-space:nowrap;transition:all 0.15s;flex-shrink:0}
+.pill:active{transform:scale(0.95)}
+.pill.sel{border-color:var(--success);color:var(--success);background:rgba(80,200,120,0.1)}
+.pill.sel.high{border-color:var(--danger);color:var(--danger);background:var(--danger-dim)}
+.pill.sel.medium{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.pill.sel.low{border-color:var(--success);color:var(--success);background:rgba(80,200,120,0.1)}
+.pill.saving{opacity:0.5}
+.fselect{font-family:'Syne Mono',monospace;font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--muted2);padding:5px 8px;outline:none;flex:1;-webkit-appearance:none;cursor:pointer;min-width:0}
+.fselect.has-val{color:var(--text);border-color:var(--muted2)}
+.date-input{font-family:'Syne Mono',monospace;font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--muted2);padding:5px 8px;outline:none;flex:1;-webkit-appearance:none;color-scheme:dark}
+.date-input.has-val{color:var(--text);border-color:var(--muted2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-st{padding:60px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.lspin{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--muted2);border-radius:50%;animation:spin 0.8s linear infinite}
+.ltxt{font-family:'Syne Mono',monospace;font-size:11px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase}
+.empty-st{padding:60px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty-icon{font-size:32px}
+.empty-txt{font-family:'Syne Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.06em}
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom)+20px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 16px;font-size:12px;font-weight:500;white-space:nowrap;opacity:0;transition:all 0.25s;pointer-events:none;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{color:var(--success);border-color:var(--success)}
+.toast.err{color:var(--danger);border-color:var(--danger)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;z-index:300;backdrop-filter:blur(8px)}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r) var(--r) 0 0;padding:24px 24px calc(24px + env(safe-area-inset-bottom));width:100%;display:flex;flex-direction:column;gap:14px;max-width:500px;margin:0 auto}
+.m-title{font-family:'Syne Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2)}
+.m-desc{font-size:13px;color:var(--muted2);line-height:1.6}
+.fi{background:var(--bg);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-family:'Syne',sans-serif;font-size:14px;padding:10px 12px;width:100%;outline:none;transition:border-color 0.15s}
+.fi::placeholder{color:var(--muted)}
+.m-actions{display:flex;gap:10px}
+.m-cancel{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:11px;border-radius:var(--r-sm);font-family:'Syne',sans-serif;font-size:14px;cursor:pointer}
+.m-save{flex:2;background:var(--text);border:none;color:var(--bg);padding:11px;border-radius:var(--r-sm);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-title">🗂 Triage</div>
+  <button class="nav-btn" onclick="loadAll()">↻</button>
+  <button class="nav-btn" id="cfgBtn" onclick="openCfg()">⚙</button>
+</div>
+
+<div class="tabs">
+  <button class="tab t-action active" onclick="switchTab('action')">Actions<span class="tab-count" id="cnt-action">—</span></button>
+  <button class="tab t-op" onclick="switchTab('op')">Points<span class="tab-count" id="cnt-op">—</span></button>
+  <button class="tab t-session" onclick="switchTab('session')">Sessions<span class="tab-count" id="cnt-session">—</span></button>
+  <button class="tab t-project" onclick="switchTab('project')">Projects<span class="tab-count" id="cnt-project">—</span></button>
+</div>
+
+<div class="main" id="main">
+  <div class="loading-st"><div class="lspin"></div><div class="ltxt">Loading</div></div>
+</div>
+
+<div class="overlay" id="cfgModal">
+  <div class="modal">
+    <div class="m-title">Notion Token</div>
+    <p class="m-desc">Paste your Notion integration token. Stored locally on your device.</p>
+    <input type="password" class="fi" id="tokenInp" placeholder="secret_…" autocomplete="off" spellcheck="false">
+    <div class="m-actions">
+      <button class="m-cancel" onclick="closeCfg()">Cancel</button>
+      <button class="m-save" onclick="saveToken()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WORKER = 'https://notion-proxy.leandromrazevedo.workers.dev/';
+const DB = {
+  actions:  '3272c6911bc480588719cc8372fe73fa',
+  points:   '32f2c6911bc480edbd64e056bb559c94',
+  sessions: '3272c6911bc48006ac82fcc608844b42',
+  projects: '3272c6911bc4802792dae39661419005',
+};
+const AREA_IDS = {
+  'CACF':      '3272c6911bc480febafedc0eacd89fe1',
+  'CTF':       '3292c6911bc480d697cafb432a783ca8',
+  'CIF':       '3352c6911bc480908013f4dca840b6b0',
+  'SCF':       '3292c6911bc48043b21bf43eda6c556f',
+  'Corporate': '32f2c6911bc480c88b14c417fddab170',
+};
+const COMMITTEE_IDS = {
+  'CTF TFC':             '33c2c6911bc48097a96bdd5e8fc3bdb2',
+  'SCF TFC':             '33c2c6911bc480708018c43811e48bcc',
+  'Joint CTF & SCF TFC': '33c2c6911bc48070abc1e2343e9cbee6',
+  'Annual Consultations':'33c2c6911bc4801da993e2dc54212764',
+  'MDB Committee':       '33c2c6911bc480569523d5f6c858e712',
+  'TIC':                 '32d2c6911bc480cdbe5edfd3a0be21e1',
+  'SEFA TRC':            '32d2c6911bc4803287d6fab0b19e94b0',
+  'CACF PRC':            '33c2c6911bc480f787cdd94e06938e79',
+  'CACF TRC':            '33c2c6911bc4806baad8e88ee550f3d6',
+};
+const SESSION_TYPES = ['Governance','Reporting','Project Work','Stakeholder Engagement','Internal','CIF Operational','Guidelines and Procedures','Other'];
+const SESSION_SUBTYPES = ['TFC','CACF Annual Consultations','CACF PRC/TRC','TIC','SEFA TRC','MDB Committee','Other Governance','Financial Statements','Operational Report','Audit','Progress Report','Investment Plans','Funding Requests','Project Origination','Project Appraisal','Project Negotiations','Project Implementation','Implementation and Supervision','Project Closure','Donor','MDB Coordination','Partner/Client','Manager','Team','HR/Performance','Events','External Guidelines and Procedures','Internal Guidelines and Procedures','Other'];
+const PRIORITIES = ['High','Medium','Low'];
+const OP_STATUSES = ['Ongoing','Elevated'];
+const PROJECT_STATUSES = ['Active','Planned','On Hold'];
+
+let currentTab = 'action';
+let data = { action:[], op:[], session:[], project:[] };
+
+const getToken = () => localStorage.getItem('notion_token') || '';
+function openCfg() { document.getElementById('tokenInp').value = getToken(); document.getElementById('cfgModal').classList.add('open'); }
+function closeCfg() { document.getElementById('cfgModal').classList.remove('open'); }
+function saveToken() {
+  const t = document.getElementById('tokenInp').value.trim();
+  if (t) { localStorage.setItem('notion_token', t); document.getElementById('cfgBtn').classList.add('ok'); toast('Token saved','ok'); }
+  closeCfg(); loadAll();
+}
+if (getToken()) document.getElementById('cfgBtn').classList.add('ok');
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.tab.t-' + tab).classList.add('active');
+  renderTab();
+}
+
+async function notionQuery(dbId, filter) {
+  const token = getToken();
+  if (!token) return [];
+  const res = await fetch(WORKER, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token,
+      'Notion-Version': '2022-06-28',
+      'X-Notion-Endpoint': 'databases/' + dbId + '/query',
+    },
+    body: JSON.stringify({ filter, page_size: 100 }),
+  });
+  if (!res.ok) throw new Error('Query error ' + res.status);
+  const d = await res.json();
+  if (d.message) throw new Error(d.message);
+  return d.results || [];
+}
+
+async function notionPatch(pageId, properties) {
+  const token = getToken();
+  const res = await fetch(WORKER, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token,
+      'Notion-Version': '2022-06-28',
+      'X-Notion-Endpoint': 'pages/' + pageId,
+    },
+    body: JSON.stringify({ properties }),
+  });
+  if (!res.ok) throw new Error('Patch error ' + res.status);
+  const d = await res.json();
+  if (d.message) throw new Error(d.message);
+  return d;
+}
+
+async function notionGet(pageId) {
+  const token = getToken();
+  const res = await fetch(WORKER, {
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Notion-Version': '2022-06-28',
+      'X-Notion-Endpoint': 'pages/' + pageId,
+    },
+  });
+  if (!res.ok) throw new Error('Get error ' + res.status);
+  return res.json();
+}
+
+function getTitle(page, key) {
+  const p = page.properties[key];
+  if (!p) return 'Untitled';
+  if (p.type === 'title') return p.title?.map(t => t.plain_text).join('') || 'Untitled';
+  return 'Untitled';
+}
+function getRelation(page, key) { return (page.properties[key]?.relation || []); }
+function getSelect(page, key) { return page.properties[key]?.select?.name || null; }
+function getMultiSelect(page, key) { return (page.properties[key]?.multi_select || []).map(s => s.name); }
+function getDate(page, key) { return page.properties[key]?.date?.start || null; }
+function isMissingRelation(page, key) { return getRelation(page, key).length === 0; }
+function isMissingSelect(page, key) { return !getSelect(page, key); }
+function isMissingMultiSelect(page, key) { return getMultiSelect(page, key).length === 0; }
+function isMissingDate(page, key) { return !getDate(page, key); }
+
+async function loadAll() {
+  if (!getToken()) { openCfg(); return; }
+  document.getElementById('main').innerHTML = '<div class="loading-st"><div class="lspin"></div><div class="ltxt">Loading</div></div>';
+  try {
+    const [actions, points, sessions, projects] = await Promise.all([loadActions(), loadPoints(), loadSessions(), loadProjects()]);
+    data.action = actions; data.op = points; data.session = sessions; data.project = projects;
+    updateCounts(); renderTab();
+  } catch(e) { toast('Load failed: ' + e.message, 'err'); }
+}
+
+async function loadActions() {
+  const results = await notionQuery(DB.actions, { and: [{ property:'Status', select:{ does_not_equal:'Done' } }, { property:'Status', select:{ does_not_equal:'Cancelled' } }] });
+  return results.filter(p => isMissingRelation(p,'Areas') || isMissingDate(p,'Due Date'));
+}
+async function loadPoints() {
+  const results = await notionQuery(DB.points, { and: [{ property:'Status', select:{ does_not_equal:'Closed' } }, { property:'Status', select:{ does_not_equal:'Dropped' } }] });
+  return results.filter(p => isMissingRelation(p,'Areas') || isMissingSelect(p,'Status'));
+}
+async function loadSessions() {
+  return await notionQuery(DB.sessions, { or: [{ property:'Status', select:{ is_empty:true } }, { property:'Areas', relation:{ is_empty:true } }, { property:'Session Type', multi_select:{ is_empty:true } }, { property:'Session Sub-Type', multi_select:{ is_empty:true } }] });
+}
+async function loadProjects() {
+  return await notionQuery(DB.projects, { property:'Areas', relation:{ is_empty:true } });
+}
+
+function updateCounts() {
+  document.getElementById('cnt-action').textContent = data.action.length || '✓';
+  document.getElementById('cnt-op').textContent = data.op.length || '✓';
+  document.getElementById('cnt-session').textContent = data.session.length || '✓';
+  document.getElementById('cnt-project').textContent = data.project.length || '✓';
+}
+
+function renderTab() {
+  const items = data[currentTab];
+  const main = document.getElementById('main');
+  if (!items.length) { main.innerHTML = `<div class="empty-st"><div class="empty-icon">✅</div><div class="empty-txt">All categorized</div></div>`; return; }
+  main.innerHTML = items.map((page) => renderCard(page)).join('');
+}
+
+function renderCard(page) {
+  const tab = currentTab;
+  let title, missingTags, fields;
+  if (tab === 'action') {
+    title = getTitle(page, 'Action Title');
+    missingTags = [isMissingRelation(page,'Areas') ? '<span class="missing-tag">No Area</span>' : '', isMissingDate(page,'Due Date') ? '<span class="missing-tag">No Due Date</span>' : ''].join('');
+    fields = fieldAreas(page.id, getRelation(page,'Areas')[0]?.id||null) + fieldCommittee(page.id, getRelation(page,'Committees')[0]?.id||null) + fieldPriority(page.id, getSelect(page,'Priority')) + fieldDate(page.id, getDate(page,'Due Date'));
+  } else if (tab === 'op') {
+    title = getTitle(page, 'Title Outstanding Point');
+    missingTags = [isMissingRelation(page,'Areas') ? '<span class="missing-tag">No Area</span>' : '', isMissingSelect(page,'Status') ? '<span class="missing-tag">No Status</span>' : ''].join('');
+    fields = fieldAreas(page.id, getRelation(page,'Areas')[0]?.id||null) + fieldCommittee(page.id, getRelation(page,'Committees')[0]?.id||null) + fieldSelectPills(page.id,'Status',OP_STATUSES,getSelect(page,'Status')) + fieldPriority(page.id, getSelect(page,'Priority'));
+  } else if (tab === 'session') {
+    title = getTitle(page, 'Session Note Title');
+    missingTags = [isMissingRelation(page,'Areas')?'<span class="missing-tag">No Area</span>':'', isMissingSelect(page,'Status')?'<span class="missing-tag">No Status</span>':'', isMissingMultiSelect(page,'Session Type')?'<span class="missing-tag">No Type</span>':'', isMissingMultiSelect(page,'Session Sub-Type')?'<span class="missing-tag">No Sub-Type</span>':''].join('');
+    fields = fieldAreas(page.id, getRelation(page,'Areas')[0]?.id||null) + fieldSelectPills(page.id,'Status',['Planned','To be Planned','Completed','Reference'],getSelect(page,'Status')) + fieldMultiSelectDropdown(page.id,'Session Type',SESSION_TYPES,getMultiSelect(page,'Session Type')) + fieldMultiSelectDropdown(page.id,'Session Sub-Type',SESSION_SUBTYPES,getMultiSelect(page,'Session Sub-Type'));
+  } else {
+    title = getTitle(page, 'Project name') || getTitle(page, 'Name') || 'Untitled Project';
+    missingTags = '<span class="missing-tag">No Area</span>';
+    fields = fieldAreas(page.id, getRelation(page,'Areas')[0]?.id||null) + fieldSelectPills(page.id,'Status',PROJECT_STATUSES,getSelect(page,'Status')) + fieldPriority(page.id, getSelect(page,'Priority'));
+  }
+  return `<div class="card" id="card-${page.id}">
+    <div class="card-top"><span class="ctype ${tab}">${tab==='op'?'Point':tab}</span><span class="ctitle">${title}</span><a class="notion-link" href="${page.url}" target="_blank">↗</a></div>
+    <div class="cmeta">${missingTags}</div>
+    <div class="fields">${fields}</div>
+  </div>`;
+}
+
+function fieldAreas(pageId, curAreaId) {
+  const pills = Object.entries(AREA_IDS).map(([name, id]) => `<button class="pill${curAreaId===id?' sel':''}" onclick="setArea('${pageId}','${id}','${name}',this)">${name}</button>`).join('');
+  return `<div class="field-row"><span class="field-lbl">Area</span><div class="pills">${pills}</div></div>`;
+}
+function fieldCommittee(pageId, curId) {
+  const opts = Object.entries(COMMITTEE_IDS).map(([name,id]) => `<option value="${id}" ${curId===id?'selected':''}>${name}</option>`).join('');
+  return `<div class="field-row"><span class="field-lbl">Committee</span><select class="fselect${curId?' has-val':''}" onchange="setCommittee('${pageId}',this)"><option value="">— None —</option>${opts}</select></div>`;
+}
+function fieldPriority(pageId, curPriority) {
+  const pills = PRIORITIES.map(p => `<button class="pill${curPriority===p?' sel '+p.toLowerCase():''}" onclick="setSelect('${pageId}','Priority','${p}',this,'${p.toLowerCase()}')">${p}</button>`).join('');
+  return `<div class="field-row"><span class="field-lbl">Priority</span><div class="pills">${pills}</div></div>`;
+}
+function fieldSelectPills(pageId, propName, options, curVal) {
+  const pills = options.map(o => `<button class="pill${curVal===o?' sel':''}" onclick="setSelect('${pageId}','${propName}','${o}',this,'')">${o}</button>`).join('');
+  return `<div class="field-row"><span class="field-lbl">${propName}</span><div class="pills">${pills}</div></div>`;
+}
+function fieldDate(pageId, curDate) {
+  return `<div class="field-row"><span class="field-lbl">Due Date</span><input type="date" class="date-input${curDate?' has-val':''}" value="${curDate||''}" onchange="setDate('${pageId}','Due Date',this)"></div>`;
+}
+function fieldMultiSelectDropdown(pageId, propName, options, curVals) {
+  const opts = options.map(o => `<option value="${o}" ${curVals.includes(o)?'selected':''}>${o}</option>`).join('');
+  return `<div class="field-row"><span class="field-lbl">${propName.replace('Session ','')}</span><select class="fselect${curVals.length?' has-val':''}" onchange="addMultiSelect('${pageId}','${propName}',this)"><option value="">— Add —</option>${opts}</select></div>`;
+}
+
+async function setArea(pageId, areaId, areaName, btn) {
+  try {
+    btn.classList.add('saving');
+    await notionPatch(pageId, { 'Areas': { relation: [{ id: areaId }] } });
+    btn.closest('.pills').querySelectorAll('.pill').forEach(p => p.classList.remove('sel'));
+    btn.classList.add('sel'); btn.classList.remove('saving');
+    toast('✓ Area → ' + areaName, 'ok');
+    await checkPageComplete(pageId);
+  } catch(e) { btn.classList.remove('saving'); toast('Failed: ' + e.message, 'err'); }
+}
+
+async function setCommittee(pageId, sel) {
+  const id = sel.value;
+  try {
+    await notionPatch(pageId, { 'Committees': id ? { relation: [{ id }] } : { relation: [] } });
+    sel.classList.toggle('has-val', !!id);
+    toast('✓ Committee updated', 'ok');
+  } catch(e) { toast('Failed: ' + e.message, 'err'); }
+}
+
+async function setSelect(pageId, propName, value, btn, cls) {
+  try {
+    btn.classList.add('saving');
+    await notionPatch(pageId, { [propName]: { select: { name: value } } });
+    btn.closest('.pills').querySelectorAll('.pill').forEach(p => p.classList.remove('sel','high','medium','low'));
+    btn.classList.add('sel'); if (cls) btn.classList.add(cls); btn.classList.remove('saving');
+    toast('✓ ' + propName + ' set', 'ok');
+    await checkPageComplete(pageId);
+  } catch(e) { btn.classList.remove('saving'); toast('Failed: ' + e.message, 'err'); }
+}
+
+async function setDate(pageId, propName, input) {
+  const val = input.value; if (!val) return;
+  try {
+    await notionPatch(pageId, { [propName]: { date: { start: val } } });
+    input.classList.add('has-val');
+    toast('✓ Due date set', 'ok');
+    await checkPageComplete(pageId);
+  } catch(e) { toast('Failed: ' + e.message, 'err'); }
+}
+
+async function addMultiSelect(pageId, propName, sel) {
+  const val = sel.value; if (!val) return;
+  const page = data[currentTab].find(p => p.id === pageId); if (!page) return;
+  const current = getMultiSelect(page, propName);
+  if (current.includes(val)) { sel.value = ''; return; }
+  const updated = [...current, val];
+  try {
+    await notionPatch(pageId, { [propName]: { multi_select: updated.map(n => ({ name: n })) } });
+    if (page.properties[propName]) page.properties[propName].multi_select = updated.map(n => ({ name: n }));
+    sel.classList.add('has-val'); sel.value = '';
+    toast('✓ ' + val + ' added', 'ok');
+    await checkPageComplete(pageId);
+  } catch(e) { toast('Failed: ' + e.message, 'err'); sel.value = ''; }
+}
+
+async function checkPageComplete(pageId) {
+  try {
+    const page = await notionGet(pageId);
+    let complete = false;
+    if (currentTab === 'action') complete = !isMissingRelation(page,'Areas') && !isMissingDate(page,'Due Date');
+    else if (currentTab === 'op') complete = !isMissingRelation(page,'Areas') && !isMissingSelect(page,'Status');
+    else if (currentTab === 'session') complete = !isMissingRelation(page,'Areas') && !isMissingSelect(page,'Status') && !isMissingMultiSelect(page,'Session Type') && !isMissingMultiSelect(page,'Session Sub-Type');
+    else if (currentTab === 'project') complete = !isMissingRelation(page,'Areas');
+    if (complete) {
+      const card = document.getElementById('card-' + pageId);
+      if (card) {
+        card.classList.add('removing');
+        setTimeout(() => { data[currentTab] = data[currentTab].filter(p => p.id !== pageId); card.remove(); updateCounts(); if (!data[currentTab].length) renderTab(); }, 400);
+      }
+    }
+  } catch(e) { /* silently ignore */ }
+}
+
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+loadAll();
+</script>
+</body>
+</html>

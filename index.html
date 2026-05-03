@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Capture">
+<title>Notion Quick Capture</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1c1c1c;
+    --border: #2a2a2a;
+    --border2: #333;
+    --text: #f0ede8;
+    --muted: #666;
+    --muted2: #888;
+    --action: #c8f060;
+    --action-dim: rgba(200,240,96,0.12);
+    --op: #60b4f0;
+    --op-dim: rgba(96,180,240,0.12);
+    --danger: #f06060;
+    --danger-dim: rgba(240,96,96,0.12);
+    --success: #60d4a0;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 300; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: 0; overflow-x: hidden; }
+  .app { width: 100%; max-width: 420px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; padding: env(safe-area-inset-top, 16px) 0 env(safe-area-inset-bottom, 0); }
+  .header { padding: 20px 24px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .header-left { display: flex; flex-direction: column; gap: 2px; }
+  .header-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted2); }
+  .header-sub { font-size: 18px; font-weight: 400; color: var(--text); letter-spacing: -0.02em; }
+  .token-btn { background: var(--surface2); border: 1px solid var(--border2); color: var(--muted2); font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; }
+  .token-btn:hover { color: var(--text); border-color: var(--muted); }
+  .token-btn.set { color: var(--success); border-color: var(--success); }
+  .type-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+  .type-btn { background: var(--surface); border: none; padding: 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; color: var(--muted); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .type-btn .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); transition: all 0.15s; }
+  .type-btn.active[data-type="action"] { background: var(--action-dim); color: var(--action); }
+  .type-btn.active[data-type="action"] .dot { background: var(--action); }
+  .type-btn.active[data-type="op"] { background: var(--op-dim); color: var(--op); }
+  .type-btn.active[data-type="op"] .dot { background: var(--op); }
+  .form-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field-label { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .field-input { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 300; padding: 12px 14px; width: 100%; outline: none; transition: border-color 0.15s; -webkit-appearance: none; }
+  .field-input:focus { border-color: var(--muted2); }
+  .field-input::placeholder { color: var(--muted); }
+  textarea.field-input { resize: none; height: 80px; line-height: 1.5; }
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { background: var(--surface); border: 1px solid var(--border2); border-radius: 100px; color: var(--muted2); font-size: 13px; font-weight: 400; padding: 7px 14px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .pill:active { transform: scale(0.96); }
+  .pill.selected[data-group="area"] { background: var(--action-dim); border-color: var(--action); color: var(--action); }
+  .pill.selected[data-group="priority-action"] { background: var(--action-dim); border-color: var(--action); color: var(--action); }
+  .pill.selected[data-group="priority-op"] { background: var(--op-dim); border-color: var(--op); color: var(--op); }
+  .pill.selected[data-group="committee"] { background: var(--surface2); border-color: var(--muted2); color: var(--text); }
+  .pill[data-value="High"].selected { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
+  .pill[data-value="Medium"].selected { background: rgba(240,180,60,0.12); border-color: #f0b43c; color: #f0b43c; }
+  .pill[data-value="Low"].selected { background: rgba(96,212,160,0.12); border-color: var(--success); color: var(--success); }
+  .date-field { display: none; }
+  .date-field.visible { display: flex; }
+  .divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .submit-bar { padding: 16px 24px; padding-bottom: max(16px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg); }
+  .submit-btn { width: 100%; padding: 15px; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.01em; }
+  .submit-btn[data-type="action"] { background: var(--action); color: #0a0a0a; }
+  .submit-btn[data-type="op"] { background: var(--op); color: #0a0a0a; }
+  .submit-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .submit-btn:not(:disabled):active { transform: scale(0.98); }
+  .toast { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 80px); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 12px 20px; font-size: 13px; font-weight: 400; white-space: nowrap; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { color: var(--success); border-color: var(--success); }
+  .toast.error { color: var(--danger); border-color: var(--danger); }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: flex-end; z-index: 200; backdrop-filter: blur(4px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius) var(--radius) 0 0; padding: 24px 24px calc(24px + env(safe-area-inset-bottom)); width: 100%; display: flex; flex-direction: column; gap: 16px; }
+  .modal-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted2); }
+  .modal-desc { font-size: 13px; color: var(--muted2); line-height: 1.6; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-cancel { flex: 1; background: var(--surface2); border: 1px solid var(--border2); color: var(--muted2); padding: 12px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
+  .modal-save { flex: 2; background: var(--text); border: none; color: var(--bg); padding: 12px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top-color: rgba(0,0,0,0.8); border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+  .loading .spinner { display: block; }
+  .loading .btn-text { display: none; }
+  .committee-section { display: none; }
+  .committee-section.visible { display: flex; flex-direction: column; gap: 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <span class="header-title">Quick Capture</span>
+      <span class="header-sub">Notion</span>
+    </div>
+    <button class="token-btn" id="tokenBtn" onclick="openTokenModal()">⚙ Token</button>
+  </div>
+  <div class="type-bar">
+    <button class="type-btn active" data-type="action" onclick="setType('action')"><span class="dot"></span> Action</button>
+    <button class="type-btn" data-type="op" onclick="setType('op')"><span class="dot"></span> Outstanding Point</button>
+  </div>
+  <div class="form-body">
+    <div class="field">
+      <label class="field-label">Title</label>
+      <textarea class="field-input" id="titleInput" placeholder="What needs to happen…" rows="2"></textarea>
+    </div>
+    <div class="divider"></div>
+    <div class="field">
+      <label class="field-label">Area</label>
+      <div class="pill-group" id="areaPills">
+        <button class="pill" data-group="area" data-value="CACF" onclick="selectPill(this,'area')">CACF</button>
+        <button class="pill" data-group="area" data-value="CTF" onclick="selectPill(this,'area')">CTF</button>
+        <button class="pill" data-group="area" data-value="CIF" onclick="selectPill(this,'area')">CIF</button>
+        <button class="pill" data-group="area" data-value="SCF" onclick="selectPill(this,'area')">SCF</button>
+        <button class="pill" data-group="area" data-value="Corporate" onclick="selectPill(this,'area')">Corporate</button>
+      </div>
+    </div>
+    <div class="committee-section field" id="committeeSection">
+      <label class="field-label">Committee</label>
+      <div class="pill-group" id="committeePills"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="field">
+      <label class="field-label">Priority</label>
+      <div class="pill-group" id="priorityPills">
+        <button class="pill" data-group="priority-action" data-value="High" onclick="selectPill(this,'priority')">High</button>
+        <button class="pill" data-group="priority-action" data-value="Medium" onclick="selectPill(this,'priority')">Medium</button>
+        <button class="pill" data-group="priority-action" data-value="Low" onclick="selectPill(this,'priority')">Low</button>
+        <button class="pill" data-group="priority-action" data-value="none" onclick="selectPill(this,'priority')">None</button>
+      </div>
+    </div>
+    <div class="date-field field" id="dueDateField">
+      <label class="field-label">Due Date <span style="color:var(--muted);font-size:10px;font-weight:300;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input type="date" class="field-input" id="dueDateInput">
+    </div>
+  </div>
+  <div class="submit-bar">
+    <button class="submit-btn" id="submitBtn" data-type="action" onclick="submit()">
+      <span class="spinner"></span>
+      <span class="btn-text">Create Action</span>
+    </button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal-overlay" id="tokenModal">
+  <div class="modal">
+    <div class="modal-title">Notion Integration Token</div>
+    <p class="modal-desc">Paste your integration token (starts with <code style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text)">secret_</code>). Stored locally on your device only.</p>
+    <input type="password" class="field-input" id="tokenInput" placeholder="secret_…" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeTokenModal()">Cancel</button>
+      <button class="modal-save" onclick="saveToken()">Save token</button>
+    </div>
+  </div>
+</div>
+<script>
+const WORKER = 'https://notion-proxy.leandromrazevedo.workers.dev/';
+const AREA_IDS = {
+  CACF: '3272c6911bc480febafedc0eacd89fe1',
+  CTF: '3292c6911bc480d697cafb432a783ca8',
+  CIF: '3352c6911bc480908013f4dca840b6b0',
+  SCF: '3292c6911bc48043b21bf43eda6c556f',
+  Corporate: '32f2c6911bc480c88b14c417fddab170',
+};
+const COMMITTEE_IDS = {
+  'CACF Annual Consultations': '33c2c6911bc4801da993e2dc54212764',
+  'CACF PRC': '33c2c6911bc480f787cdd94e06938e79',
+  'CACF TRC': '33c2c6911bc4806baad8e88ee550f3d6',
+  'CTF TFC': '33c2c6911bc48097a96bdd5e8fc3bdb2',
+  'SCF TFC': '33c2c6911bc480708018c43811e48bcc',
+  'Joint CTF and SCF TFC': '33c2c6911bc48070abc1e2343e9cbee6',
+  'TIC': '32d2c6911bc480cdbe5edfd3a0be21e1',
+  'SEFA TRC': '32d2c6911bc4803287d6fab0b19e94b0',
+  'MDB Committee': '33c2c6911bc480569523d5f6c858e712',
+};
+const COMMITTEES_BY_AREA = {
+  CACF: ['CACF Annual Consultations','CACF PRC','CACF TRC','MDB Committee'],
+  CTF: ['CTF TFC','Joint CTF and SCF TFC','MDB Committee'],
+  CIF: ['Joint CTF and SCF TFC','TIC','SEFA TRC','MDB Committee'],
+  SCF: ['SCF TFC','Joint CTF and SCF TFC','MDB Committee'],
+  Corporate: ['TIC','MDB Committee'],
+};
+const ACTIONS_DB = '3272c6911bc480588719cc8372fe73fa';
+const OUTSTANDING_DB = '32f2c6911bc480edbd64e056bb559c94';
+let currentType = 'action';
+let selectedArea = null;
+let selectedCommittee = null;
+let selectedPriority = null;
+function getToken() { return localStorage.getItem('notion_token') || ''; }
+function openTokenModal() { document.getElementById('tokenInput').value = getToken(); document.getElementById('tokenModal').classList.add('open'); }
+function closeTokenModal() { document.getElementById('tokenModal').classList.remove('open'); }
+function saveToken() {
+  const t = document.getElementById('tokenInput').value.trim();
+  if (t) { localStorage.setItem('notion_token', t); document.getElementById('tokenBtn').classList.add('set'); document.getElementById('tokenBtn').textContent = '✓ Token'; showToast('Token saved', 'success'); }
+  closeTokenModal();
+}
+if (getToken()) { document.getElementById('tokenBtn').classList.add('set'); document.getElementById('tokenBtn').textContent = '✓ Token'; }
+function setType(type) {
+  currentType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  document.getElementById('submitBtn').dataset.type = type;
+  document.getElementById('submitBtn').querySelector('.btn-text').textContent = type === 'action' ? 'Create Action' : 'Create Outstanding Point';
+  document.getElementById('dueDateField').classList.toggle('visible', type === 'action');
+  document.querySelectorAll('#priorityPills .pill').forEach(p => { p.dataset.group = type === 'action' ? 'priority-action' : 'priority-op'; if (p.classList.contains('selected')) p.classList.remove('selected'); });
+  selectedPriority = null;
+}
+function selectPill(el, group) {
+  if (group === 'area') {
+    document.querySelectorAll('[data-group="area"]').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedArea = el.dataset.value;
+    updateCommittees(selectedArea);
+  } else if (group === 'priority') {
+    document.querySelectorAll('[data-group^="priority"]').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedPriority = el.dataset.value === 'none' ? null : el.dataset.value;
+  } else if (group === 'committee') {
+    document.querySelectorAll('[data-group="committee"]').forEach(p => p.classList.remove('selected'));
+    if (el.dataset.selected === 'true') { el.classList.remove('selected'); el.dataset.selected = 'false'; selectedCommittee = null; }
+    else { el.classList.add('selected'); el.dataset.selected = 'true'; selectedCommittee = el.dataset.value === 'none' ? null : el.dataset.value; }
+  }
+}
+function updateCommittees(area) {
+  const section = document.getElementById('committeeSection');
+  const container = document.getElementById('committeePills');
+  const committees = COMMITTEES_BY_AREA[area] || [];
+  container.innerHTML = '';
+  selectedCommittee = null;
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'pill'; noneBtn.dataset.group = 'committee'; noneBtn.dataset.value = 'none'; noneBtn.dataset.selected = 'false'; noneBtn.textContent = 'None';
+  noneBtn.onclick = () => selectPill(noneBtn, 'committee');
+  container.appendChild(noneBtn);
+  committees.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'pill'; btn.dataset.group = 'committee'; btn.dataset.value = name; btn.dataset.selected = 'false'; btn.textContent = name;
+    btn.onclick = () => selectPill(btn, 'committee');
+    container.appendChild(btn);
+  });
+  section.classList.add('visible');
+}
+async function submit() {
+  const token = getToken();
+  if (!token) { openTokenModal(); return; }
+  const title = document.getElementById('titleInput').value.trim();
+  if (!title) { showToast('Title is required', 'error'); return; }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.classList.add('loading');
+  const isAction = currentType === 'action';
+  const dbId = isAction ? ACTIONS_DB : OUTSTANDING_DB;
+  const titleKey = isAction ? 'Action Title' : 'Title Outstanding Point';
+  const status = isAction ? 'In Progress' : 'Ongoing';
+  const properties = {};
+  properties[titleKey] = { title: [{ text: { content: title } }] };
+  properties['Status'] = { select: { name: status } };
+  if (selectedPriority) properties['Priority'] = { select: { name: selectedPriority } };
+  if (selectedArea && AREA_IDS[selectedArea]) properties['Areas'] = { relation: [{ id: AREA_IDS[selectedArea] }] };
+  if (selectedCommittee && COMMITTEE_IDS[selectedCommittee]) properties['Committees'] = { relation: [{ id: COMMITTEE_IDS[selectedCommittee] }] };
+  if (isAction) { const due = document.getElementById('dueDateInput').value; if (due) properties['Due Date'] = { date: { start: due } }; }
+  const body = { parent: { database_id: dbId }, properties };
+  try {
+    const res = await fetch(WORKER, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+        'Notion-Version': '2022-06-28',
+        'X-Notion-Endpoint': 'pages',
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (res.ok) { showToast(isAction ? '✓ Action created' : '✓ Outstanding Point created', 'success'); resetForm(); }
+    else { showToast(data.message || 'API error', 'error'); console.error(data); }
+  } catch(e) { showToast('Network error — check connection', 'error'); console.error(e); }
+  btn.disabled = false; btn.classList.remove('loading');
+}
+function resetForm() {
+  document.getElementById('titleInput').value = '';
+  document.getElementById('dueDateInput').value = '';
+  document.querySelectorAll('.pill.selected').forEach(p => p.classList.remove('selected'));
+  document.getElementById('committeeSection').classList.remove('visible');
+  document.getElementById('committeePills').innerHTML = '';
+  selectedArea = null; selectedCommittee = null; selectedPriority = null;
+}
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+document.getElementById('dueDateField').classList.add('visible');
+</script>
+</body>
+</html>
